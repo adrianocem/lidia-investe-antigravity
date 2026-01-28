@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { Investment, InvestmentTitle, InvestmentType, MarketRates } from '../types';
 import { calculateFutureValue, CalculationResult } from '../utils/calculations';
-import { PlusCircle, Pencil, Info } from 'lucide-react';
+import { fetchCustomBanks, addCustomBank, CustomBank } from '../services/bankService';
+import { PlusCircle, Pencil, Info, Plus } from 'lucide-react';
 
 interface Props {
   onAdd: (investment: Investment) => void;
@@ -12,10 +12,12 @@ interface Props {
 }
 
 const MAJOR_BROKERS = [
-  "XP Investimentos", "Rico", "Clear", "BTG Pactual", "NuInvest",
+  "XP Investimentos", "Rico", "Clear", "BTG Pactual", "Nubank",
   "Inter Invest", "Ágora Investimentos", "Genial Investimentos",
   "Toro Investimentos", "Órama", "ModalMais", "Guide Investimentos",
-  "Avenue", "Nomad", "Warren", "Banco Inter", "C6 Bank"
+  "Avenue", "Nomad", "Warren", "Banco Inter", "C6 Bank",
+  "Sofisa Direto", "Banco do Brasil", "Caixa Econômica Federal",
+  "Bradesco", "Itaú Unibanco", "Santander"
 ].sort();
 
 const MAJOR_BANKS = [
@@ -24,7 +26,7 @@ const MAJOR_BANKS = [
   "Banco Safra", "Banco Daycoval", "Banco Pan", "Banco BMG",
   "Banco ABC Brasil", "Banco Pine", "Banco Original",
   "Banco Modal", "Banco Master", "Banco XP", "C6 Bank",
-  "NuBank", "Sofisa Direto", "Banco Bari", "Banco Agibank"
+  "Nubank", "Sofisa Direto", "Banco Bari", "Banco Agibank"
 ].sort();
 
 export const InvestmentForm: React.FC<Props> = ({ onAdd, onUpdate, marketRates, editingInvestment }) => {
@@ -37,15 +39,27 @@ export const InvestmentForm: React.FC<Props> = ({ onAdd, onUpdate, marketRates, 
     quantity: 1,
     interestRate: 100,
     incomeTax: 15,
+    startDate: new Date().toISOString().split('T')[0],
     dueDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
   });
 
   const [fvPreview, setFvPreview] = useState<CalculationResult>({ gross: 0, net: 0 });
+  const [customBanks, setCustomBanks] = useState<CustomBank[]>([]);
+  const [showCustomBroker, setShowCustomBroker] = useState(false);
+  const [showCustomBank, setShowCustomBank] = useState(false);
+  const [newBrokerName, setNewBrokerName] = useState('');
+  const [newBankName, setNewBankName] = useState('');
+
+  // Load custom banks on mount
+  useEffect(() => {
+    fetchCustomBanks().then(setCustomBanks);
+  }, []);
 
   useEffect(() => {
     if (editingInvestment) {
       setFormData({
         ...editingInvestment,
+        startDate: new Date(editingInvestment.startDate).toISOString().split('T')[0],
         dueDate: new Date(editingInvestment.dueDate).toISOString().split('T')[0],
       });
     } else {
@@ -58,6 +72,7 @@ export const InvestmentForm: React.FC<Props> = ({ onAdd, onUpdate, marketRates, 
         quantity: 1,
         interestRate: 100,
         incomeTax: 15,
+        startDate: new Date().toISOString().split('T')[0],
         dueDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       });
     }
@@ -95,6 +110,7 @@ export const InvestmentForm: React.FC<Props> = ({ onAdd, onUpdate, marketRates, 
       quantity: 1,
       interestRate: 100,
       incomeTax: 15,
+      startDate: new Date().toISOString().split('T')[0],
       dueDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     });
   };
@@ -129,38 +145,106 @@ export const InvestmentForm: React.FC<Props> = ({ onAdd, onUpdate, marketRates, 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
           <div>
             <label className={labelClass}>Corretora</label>
-            <div className="relative">
-              <select
-                required
-                className={selectClass}
-                value={formData.broker}
-                onChange={e => setFormData({ ...formData, broker: e.target.value })}
-              >
-                <option value="" disabled>Selecione a corretora</option>
-                {MAJOR_BROKERS.map(broker => <option key={broker} value={broker}>{broker}</option>)}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
-                <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+            {showCustomBroker ? (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Digite o nome da corretora"
+                  className={inputClass}
+                  value={newBrokerName}
+                  onChange={e => setNewBrokerName(e.target.value)}
+                  onBlur={async () => {
+                    if (newBrokerName.trim()) {
+                      const saved = await addCustomBank(newBrokerName, true);
+                      if (saved) {
+                        setCustomBanks(prev => [...prev, saved]);
+                        setFormData({ ...formData, broker: saved.name });
+                      }
+                    }
+                    setShowCustomBroker(false);
+                    setNewBrokerName('');
+                  }}
+                  autoFocus
+                />
+                <button type="button" onClick={() => { setShowCustomBroker(false); setNewBrokerName(''); }} className="px-3 py-2 text-slate-400 hover:text-slate-600">
+                  ✕
+                </button>
               </div>
-            </div>
+            ) : (
+              <div className="relative">
+                <select
+                  required
+                  className={selectClass}
+                  value={formData.broker}
+                  onChange={e => {
+                    if (e.target.value === '__ADD_NEW__') {
+                      setShowCustomBroker(true);
+                    } else {
+                      setFormData({ ...formData, broker: e.target.value });
+                    }
+                  }}
+                >
+                  <option value="" disabled>Selecione a corretora</option>
+                  {[...MAJOR_BROKERS, ...customBanks.filter(b => b.isBroker).map(b => b.name)].sort().map(broker => <option key={broker} value={broker}>{broker}</option>)}
+                  <option value="__ADD_NEW__">+ Adicionar outra...</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+                  <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+                </div>
+              </div>
+            )}
           </div>
 
           <div>
             <label className={labelClass}>Banco Emissor</label>
-            <div className="relative">
-              <select
-                required
-                className={selectClass}
-                value={formData.bank}
-                onChange={e => setFormData({ ...formData, bank: e.target.value })}
-              >
-                <option value="" disabled>Selecione o banco</option>
-                {MAJOR_BANKS.map(bank => <option key={bank} value={bank}>{bank}</option>)}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
-                <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+            {showCustomBank ? (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Digite o nome do banco"
+                  className={inputClass}
+                  value={newBankName}
+                  onChange={e => setNewBankName(e.target.value)}
+                  onBlur={async () => {
+                    if (newBankName.trim()) {
+                      const saved = await addCustomBank(newBankName, false);
+                      if (saved) {
+                        setCustomBanks(prev => [...prev, saved]);
+                        setFormData({ ...formData, bank: saved.name });
+                      }
+                    }
+                    setShowCustomBank(false);
+                    setNewBankName('');
+                  }}
+                  autoFocus
+                />
+                <button type="button" onClick={() => { setShowCustomBank(false); setNewBankName(''); }} className="px-3 py-2 text-slate-400 hover:text-slate-600">
+                  ✕
+                </button>
               </div>
-            </div>
+            ) : (
+              <div className="relative">
+                <select
+                  required
+                  className={selectClass}
+                  value={formData.bank}
+                  onChange={e => {
+                    if (e.target.value === '__ADD_NEW__') {
+                      setShowCustomBank(true);
+                    } else {
+                      setFormData({ ...formData, bank: e.target.value });
+                    }
+                  }}
+                >
+                  <option value="" disabled>Selecione o banco</option>
+                  {[...MAJOR_BANKS, ...customBanks.filter(b => !b.isBroker).map(b => b.name)].sort().map(bank => <option key={bank} value={bank}>{bank}</option>)}
+                  <option value="__ADD_NEW__">+ Adicionar outro...</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+                  <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+                </div>
+              </div>
+            )}
           </div>
 
           <div>
@@ -205,6 +289,11 @@ export const InvestmentForm: React.FC<Props> = ({ onAdd, onUpdate, marketRates, 
                 {formData.type === InvestmentType.CDI ? '% CDI' : '% a.a.'}
               </span>
             </div>
+          </div>
+
+          <div>
+            <label className={labelClass}>Data de Aplicação</label>
+            <input type="date" required className={inputClass} value={formData.startDate} onChange={e => setFormData({ ...formData, startDate: e.target.value })} />
           </div>
 
           <div>

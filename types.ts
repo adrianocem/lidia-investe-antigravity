@@ -22,7 +22,8 @@ export interface Investment {
   quantity: number;
   interestRate: number; // Percentual (Ex: 110 para CDI, 12.5 para Prefixado)
   incomeTax: number;    // Percentual estimado (Ex: 15)
-  dueDate: string;      // ISO Date
+  startDate: string;    // ISO Date - Data da aplicação
+  dueDate: string;      // ISO Date - Data de vencimento
   futureValue: number;     // Valor BRUTO (usado para FGC)
   netFutureValue: number;  // Valor LÍQUIDO (usado para patrimônio)
   createdAt: number;

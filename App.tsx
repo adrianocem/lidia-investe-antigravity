@@ -296,17 +296,76 @@ const App: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-6">
+            {/* Card Principal - Limite Global CPF */}
             <div className="bg-blue-600 rounded-2xl p-6 lg:p-8 text-white relative overflow-hidden shadow-lg">
               <div className="relative z-10">
                 <h2 className="text-xl font-black mb-2 flex items-center gap-2"><ShieldCheck className="w-6 h-6" /> Monitor FGC</h2>
-                <p className="opacity-80 text-xs max-w-lg">O FGC garante até 250k por instituição. Para efeito de limite, o FGC considera o valor bruto (sem desconto de IR).</p>
-                <div className="mt-4 bg-white/10 px-3 py-1.5 rounded-lg border border-white/20 inline-block">
-                  <p className="text-[9px] font-bold uppercase opacity-60">Futuro Total Bruto (Garantia FGC)</p>
-                  <p className="text-sm font-black">{formatCurrency(investments.reduce((acc, curr) => acc + (curr.futureValue || 0), 0))}</p>
+                <p className="opacity-80 text-xs max-w-lg">O FGC garante até R$ 250k por instituição e R$ 1 milhão por CPF (considerando todas as instituições).</p>
+
+                <div className="mt-4 flex flex-wrap gap-4">
+                  <div className="bg-white/10 px-4 py-2 rounded-lg border border-white/20">
+                    <p className="text-[9px] font-bold uppercase opacity-60">Total Bruto Futuro</p>
+                    <p className="text-lg font-black">{formatCurrency(investments.reduce((acc, curr) => acc + (curr.futureValue || 0), 0))}</p>
+                  </div>
+                  <div className="bg-white/10 px-4 py-2 rounded-lg border border-white/20">
+                    <p className="text-[9px] font-bold uppercase opacity-60">Bancos Utilizados</p>
+                    <p className="text-lg font-black">{fgcExposure.length}</p>
+                  </div>
                 </div>
               </div>
               <ShieldCheck className="absolute -right-4 -bottom-4 w-40 h-40 text-white opacity-5 pointer-events-none" />
             </div>
+
+            {/* Card Limite Global CPF - R$ 1 Milhão */}
+            {(() => {
+              const totalFGC = investments.reduce((acc, curr) => acc + (curr.futureValue || 0), 0);
+              const FGC_GLOBAL_LIMIT = 1000000;
+              const globalPercentage = Math.min((totalFGC / FGC_GLOBAL_LIMIT) * 100, 100);
+              const isGlobalOver = totalFGC > FGC_GLOBAL_LIMIT;
+              const isGlobalWarning = totalFGC > FGC_GLOBAL_LIMIT * 0.8 && !isGlobalOver;
+
+              let bgColor = "bg-emerald-50 border-emerald-200";
+              let barColor = "bg-emerald-500";
+              let textColor = "text-emerald-700";
+
+              if (isGlobalOver) {
+                bgColor = "bg-red-50 border-red-200";
+                barColor = "bg-red-500";
+                textColor = "text-red-700";
+              } else if (isGlobalWarning) {
+                bgColor = "bg-amber-50 border-amber-200";
+                barColor = "bg-amber-500";
+                textColor = "text-amber-700";
+              }
+
+              return (
+                <div className={`${bgColor} border rounded-2xl p-6`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className={`text-sm font-bold ${textColor} uppercase tracking-tight`}>Limite Global por CPF</h3>
+                      <p className="text-2xl font-black text-slate-800">{formatCurrency(totalFGC)} <span className="text-sm font-medium text-slate-400">/ R$ 1.000.000</span></p>
+                    </div>
+                    <span className={`text-xl font-black ${textColor}`}>{globalPercentage.toFixed(1)}%</span>
+                  </div>
+                  <div className="w-full h-4 bg-slate-200 rounded-full overflow-hidden">
+                    <div className={`h-full transition-all duration-500 ${barColor}`} style={{ width: `${globalPercentage}%` }} />
+                  </div>
+                  {isGlobalOver && (
+                    <p className="mt-3 text-xs text-red-600 font-medium">
+                      ⚠️ Você ultrapassou o limite global do FGC. O excedente de {formatCurrency(totalFGC - FGC_GLOBAL_LIMIT)} <strong>não está coberto</strong>.
+                    </p>
+                  )}
+                  {isGlobalWarning && (
+                    <p className="mt-3 text-xs text-amber-600 font-medium">
+                      ⚡ Você está próximo do limite global do FGC. Considere diversificar em outros tipos de ativos.
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Cards por Banco */}
+            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mt-8">Exposição por Instituição</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
               {fgcExposure.length === 0 ? (<div className="col-span-full py-16 bg-white rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400"><ShieldCheck className="w-10 h-10 mb-2 opacity-20" /><p className="text-sm">Nenhum banco identificado.</p></div>) : (
                 fgcExposure.map(([bank, total]) => <FGCCard key={bank} bank={bank} totalValue={total} />)
