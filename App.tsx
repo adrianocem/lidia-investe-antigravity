@@ -6,7 +6,7 @@ import { StatsCard } from './components/StatsCard';
 import { FGCCard } from './components/FGCCard';
 import { calculateFutureValue, formatCurrency, formatDate } from './utils/calculations';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
-import { Wallet, TrendingUp, Calendar, LayoutDashboard, List, Trash2, ShieldCheck, Plus, Pencil, Settings, Loader2, ChevronUp, ChevronDown, ArrowUpDown, Download } from 'lucide-react';
+import { Wallet, TrendingUp, Calendar, LayoutDashboard, List, Trash2, ShieldCheck, Plus, Pencil, Settings, Loader2, ChevronUp, ChevronDown, ArrowUpDown, Download, Bell, X } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
   fetchInvestments,
@@ -28,6 +28,7 @@ const App: React.FC = () => {
   const [isRecalculating, setIsRecalculating] = useState(false);
   const [sortField, setSortField] = useState<'bank' | 'amount' | 'startDate' | 'dueDate' | 'netFutureValue'>('dueDate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [showUpdates, setShowUpdates] = useState(false);
 
   // Carregar dados do Supabase ao iniciar
   useEffect(() => {
@@ -252,7 +253,7 @@ const App: React.FC = () => {
           </div>
           <div className="flex flex-col">
             <span className="text-xl font-black text-slate-800 tracking-tight">Lídia Investe</span>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest -mt-1">v. 1.0</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest -mt-1">v. 1.1</span>
           </div>
         </div>
 
@@ -264,16 +265,100 @@ const App: React.FC = () => {
         </nav>
       </aside>
 
-      {/* Header Mobile */}
-      <header className="lg:hidden bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
+      {/* Header Mobile & Desktop Top Bar */}
+      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg overflow-hidden border border-blue-100 shrink-0">
-            <img src="/app-icon.jpg" alt="Lídia Investe" className="w-full h-full object-cover" />
+          <div className="lg:hidden flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg overflow-hidden border border-blue-100 shrink-0">
+              <img src="/app-icon.jpg" alt="Lídia Investe" className="w-full h-full object-cover" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-black text-slate-800 text-sm leading-tight">Lídia Investe</span>
+              <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">v. 1.1</span>
+            </div>
           </div>
-          <div className="flex flex-col">
-            <span className="font-black text-slate-800 text-sm leading-tight">Lídia Investe</span>
-            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">v. 1.0</span>
+          <div className="hidden lg:block">
+            <h1 className="text-xl font-black text-slate-800 tracking-tight">
+              {activeTab === 'dashboard' ? 'Dashboard' :
+                activeTab === 'investments' ? 'Investimentos' :
+                  activeTab === 'fgc' ? 'Monitor FGC' : 'Configurações'}
+            </h1>
           </div>
+        </div>
+
+        <div className="flex items-center gap-3 relative">
+          <button
+            onClick={() => setShowUpdates(!showUpdates)}
+            className={`p-2 rounded-xl transition-all relative ${showUpdates ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'}`}
+          >
+            <Bell className="w-5 h-5" />
+            <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+          </button>
+
+          {/* Updates Panel */}
+          {showUpdates && (
+            <div className="absolute top-14 right-0 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 z-[60] overflow-hidden animate-in fade-in slide-in-from-top-4 duration-200">
+              <div className="p-4 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-blue-100 text-blue-600 rounded-lg">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <h3 className="font-bold text-slate-800 text-sm">Novidades do App</h3>
+                </div>
+                <button onClick={() => setShowUpdates(false)} className="p-1 text-slate-400 hover:text-slate-600 transition-colors"><X className="w-4 h-4" /></button>
+              </div>
+              <div className="p-4 max-h-[420px] overflow-y-auto">
+                <div className="space-y-6">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-black rounded-full uppercase">Update V. 1.1</span>
+                      <span className="text-[10px] text-slate-400 font-bold">03/02/2026</span>
+                    </div>
+                    <ul className="space-y-3">
+                      <li className="flex gap-3">
+                        <div className="mt-1 w-1.5 h-1.5 bg-blue-500 rounded-full shrink-0"></div>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-slate-800">Exportação para Excel</span>
+                          <p className="text-[11px] text-slate-500 leading-relaxed">Agora você pode exportar sua carteira com formatação contábil (R$) e taxas (%) automáticas.</p>
+                        </div>
+                      </li>
+                      <li className="flex gap-3">
+                        <div className="mt-1 w-1.5 h-1.5 bg-blue-500 rounded-full shrink-0"></div>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-slate-800">Monitor Global de FGC</span>
+                          <p className="text-[11px] text-slate-500 leading-relaxed">Implementamos o limite de R$ 1 milhão por CPF e avisos de risco por instituição.</p>
+                        </div>
+                      </li>
+                      <li className="flex gap-3">
+                        <div className="mt-1 w-1.5 h-1.5 bg-blue-500 rounded-full shrink-0"></div>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-slate-800">Bancos Customizados</span>
+                          <p className="text-[11px] text-slate-500 leading-relaxed">Liberdade total: adicione qualquer banco que não esteja na lista inicial.</p>
+                        </div>
+                      </li>
+                      <li className="flex gap-3">
+                        <div className="mt-1 w-1.5 h-1.5 bg-blue-500 rounded-full shrink-0"></div>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-slate-800">Ordenação de Ativos</span>
+                          <p className="text-[11px] text-slate-500 leading-relaxed">Organize sua tabela clicando nos cabeçalhos (Banco, Valor, Vencimento, etc) para priorizar sua visão.</p>
+                        </div>
+                      </li>
+                      <li className="flex gap-3">
+                        <div className="mt-1 w-1.5 h-1.5 bg-blue-500 rounded-full shrink-0"></div>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-slate-800">Nova Identidade (V. 1.1)</span>
+                          <p className="text-[11px] text-slate-500 leading-relaxed">Interface mais limpa com nova barra superior e identificação visual atualizada.</p>
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              <div className="p-3 bg-slate-50 border-t border-slate-100 flex justify-center">
+                <p className="text-[10px] text-slate-400 font-medium">Lídia Investe - Sempre evoluindo por você.</p>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
